@@ -217,8 +217,8 @@ int wmain(const int argc, wchar_t** argv) {
 		Log(L"[-] Warning failed to fully unload vulnerable driver " << std::endl);
 		PauseIfParentIsExplorer();
 	}
-	Log(L"[+] success" << std::endl);
 
+	Log(L"[+] success" << std::endl);
 	system("pause");
 }
 

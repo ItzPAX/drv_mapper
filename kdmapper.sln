@@ -5,8 +5,6 @@ VisualStudioVersion = 17.5.33530.505
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kdmapper", "kdmapper\kdmapper.vcxproj", "{518E0636-BA8F-459D-ACAC-81BD33475E3E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SymbolsFromPDB", "SymbolsFromPDB\SymbolsFromPDB.vcxproj", "{25F92BD2-B79F-44C0-9B34-B7DE61F39E50}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KMDF Driver1", "KMDF Driver1\KMDF Driver1.vcxproj", "{28C79524-2D8D-FE0D-FEB0-27FE06BB2FB6}"
 EndProject
 Global
@@ -31,14 +29,6 @@ Global
 		{518E0636-BA8F-459D-ACAC-81BD33475E3E}.Release_Pdb_Offset|x64.Build.0 = Release_Pdb_Offset|x64
 		{518E0636-BA8F-459D-ACAC-81BD33475E3E}.Release|x64.ActiveCfg = Release|x64
 		{518E0636-BA8F-459D-ACAC-81BD33475E3E}.Release|x64.Build.0 = Release|x64
-		{25F92BD2-B79F-44C0-9B34-B7DE61F39E50}.Debug|x64.ActiveCfg = Release_Pdb_Offset|x64
-		{25F92BD2-B79F-44C0-9B34-B7DE61F39E50}.lib-Debug|x64.ActiveCfg = lib-Release_Pdb_Offsets|x64
-		{25F92BD2-B79F-44C0-9B34-B7DE61F39E50}.lib-Release_Pdb_Offsets|x64.ActiveCfg = lib-Release_Pdb_Offsets|x64
-		{25F92BD2-B79F-44C0-9B34-B7DE61F39E50}.lib-Release_Pdb_Offsets|x64.Build.0 = lib-Release_Pdb_Offsets|x64
-		{25F92BD2-B79F-44C0-9B34-B7DE61F39E50}.lib-Release|x64.ActiveCfg = lib-Release_Pdb_Offsets|x64
-		{25F92BD2-B79F-44C0-9B34-B7DE61F39E50}.Release_Pdb_Offset|x64.ActiveCfg = Release_Pdb_Offset|x64
-		{25F92BD2-B79F-44C0-9B34-B7DE61F39E50}.Release_Pdb_Offset|x64.Build.0 = Release_Pdb_Offset|x64
-		{25F92BD2-B79F-44C0-9B34-B7DE61F39E50}.Release|x64.ActiveCfg = Release_Pdb_Offset|x64
 		{28C79524-2D8D-FE0D-FEB0-27FE06BB2FB6}.Debug|x64.ActiveCfg = Debug|x64
 		{28C79524-2D8D-FE0D-FEB0-27FE06BB2FB6}.Debug|x64.Build.0 = Debug|x64
 		{28C79524-2D8D-FE0D-FEB0-27FE06BB2FB6}.Debug|x64.Deploy.0 = Debug|x64
