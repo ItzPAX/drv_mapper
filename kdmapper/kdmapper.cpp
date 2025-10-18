@@ -165,7 +165,6 @@ ULONG64 kdmapper::MapDriver(BYTE* data, ULONG64 param1, ULONG64 param2, bool fre
 	std::cout << "kernel image base @ " << std::hex << kernel_image_base << std::endl;
 
 	system("pause");
-	
 
 	if (!kernel_image_base) {
 		Log(L"[-] Failed to allocate remote image in kernel" << std::endl);

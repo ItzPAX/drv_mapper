@@ -111,6 +111,10 @@ void help() {
 }
 
 int wmain(const int argc, wchar_t** argv) {
+	ULONG64 kernel_image_base = kdmapper::AllocateLegitRwxKernelMem();
+	system("pause");
+	return 1;
+
 	SetUnhandledExceptionFilter(SimplestCrashHandler);
 
 	bool free = paramExists(argc, argv, L"free") > 0;
