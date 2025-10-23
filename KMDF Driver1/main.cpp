@@ -1,87 +1,88 @@
-#include <ntifs.h>
-#include <ntddk.h>
-#include "ntos.h"
+#include "main.h"
 
-NTSTATUS get_process_id(PCWSTR executable_name, PHANDLE pOutHandle)
+DRIVER_INITIALIZE DriverEntry;
+#pragma alloc_text(INIT, DriverEntry)
+
+//This is a .asm file
+/*
+.code
+DispatchHook proc
+	add rsp, 8h
+	mov rax, 0DEADBEEFCAFEBEEFh
+	jmp rax
+DispatchHook endp
+
+end
+*/
+
+extern "C" void DispatchHook();
+
+PDRIVER_DISPATCH ACPIOriginalDispatch = 0;
+
+#define IOCTL_DISK_BASE                 FILE_DEVICE_DISK
+#define IOCTL_DISK_GET_DRIVE_GEOMETRY   CTL_CODE(IOCTL_DISK_BASE, 0x0000, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+
+NTSTATUS CustomDispatch(PDEVICE_OBJECT device, PIRP irp)
 {
-    NTSTATUS status;
-    PVOID buffer = NULL;
-    ULONG bufferSize = 0;
-    BOOLEAN found = FALSE;
-    PSYSTEM_PROCESS_INFORMATION spi = NULL;
-    UNICODE_STRING targetName;
+	PIO_STACK_LOCATION ioc = IoGetCurrentIrpStackLocation(irp);
 
-    *pOutHandle = nullptr;
+	//Here you can do your custom calls
 
-    RtlInitUnicodeString(&targetName, executable_name);
+	if (ioc->Parameters.DeviceIoControl.IoControlCode == IOCTL_DISK_GET_DRIVE_GEOMETRY)
+	{
+		const char* Buffer = (const char*)irp->AssociatedIrp.SystemBuffer;
 
-    status = ZwQuerySystemInformation(SystemProcessInformation, NULL, 0, &bufferSize);
-    if (status != STATUS_INFO_LENGTH_MISMATCH)
-        return status;
-
-    buffer = ExAllocatePoolWithTag(NonPagedPool, bufferSize, 'proc');
-    if (!buffer)
-        return STATUS_INSUFFICIENT_RESOURCES;
-
-    status = ZwQuerySystemInformation(SystemProcessInformation, buffer, bufferSize, &bufferSize);
-    if (!NT_SUCCESS(status)) {
-        ExFreePoolWithTag(buffer, 'proc');
-        return status;
-    }
-
-    spi = (PSYSTEM_PROCESS_INFORMATION) buffer;
-    while (TRUE) {
-        if (spi->UniqueProcessId && spi->ImageName.Buffer) {
-            UNICODE_STRING currentName;
-            RtlInitUnicodeString(&currentName, spi->ImageName.Buffer);
-
-            if (RtlCompareUnicodeString(&currentName, &targetName, FALSE) == 0) {
-                *pOutHandle = spi->UniqueProcessId;
-                found = TRUE;
-                break;
-            }
-        }
-
-        if (spi->NextEntryOffset == 0)
-            break;
-
-        spi = (PSYSTEM_PROCESS_INFORMATION) ((PUCHAR) spi + spi->NextEntryOffset);
-    }
-
-    ExFreePoolWithTag(buffer, 'proc');
-
-    return found ? STATUS_SUCCESS : STATUS_NOT_FOUND;
+		if (Buffer)
+		{
+			Printf("[Hook] Got Call with Control code: %X %s\n", ioc->Parameters.DeviceIoControl.IoControlCode, Buffer);
+		}
+	}
+	return ACPIOriginalDispatch(device, irp);
 }
 
-void th_Routine()
+NTSTATUS DriverEntry(_In_  struct _DRIVER_OBJECT* DriverObject, _In_  PUNICODE_STRING RegistryPath)
 {
-    DbgPrint("Hi from thread\n");
-}
+	PDRIVER_OBJECT ACPIDriverObject = nullptr;
 
-NTSTATUS CustomDriverEntry(
-	_In_ PDRIVER_OBJECT  kdmapperParam1,
-	_In_ PUNICODE_STRING kdmapperParam2,
-	_In_ VOID* ntoskrnl
-)
-{
-	UNREFERENCED_PARAMETER(ntoskrnl);
-	UNREFERENCED_PARAMETER(kdmapperParam2);
+	UNICODE_STRING DriverObjectName = RTL_CONSTANT_STRING(L"\\Driver\\ACPI");
+	ObReferenceObjectByName(&DriverObjectName, OBJ_CASE_INSENSITIVE, 0, 0, *IoDriverObjectType, KernelMode, 0, (PVOID*)&ACPIDriverObject);
 
-	DbgPrintEx(0, 0, "> Hello world! from 0x%llx\n", kdmapperParam1);
+	if (ACPIDriverObject)
+	{
+		ACPIOriginalDispatch = ACPIDriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL];
 
-    HANDLE procId = NULL;
-    get_process_id(L"kdmapper_Release.exe", &procId);
+		/*
+			add rsp, 8h //remove the previus return addrss from the stack since we don't care to return to it
+			mov rax, 0DEADBEEFCAFEBEEFh
+			jmp rax //Jump to our custom dispatcher!
+		*/
+		ULONG64 DispatchHookAddr = (ULONG64)DispatchHook;
 
-    DbgPrint("PID: %d\n", procId);
-    PEPROCESS process = NULL;
-    PsLookupProcessByProcessId(procId, &process);
-    DbgPrint("Eproc: %llx", process);
+		*(ULONG64*)(DispatchHookAddr + 0x6) = (ULONG64)CustomDispatch;
 
-    HANDLE hProc;
-    ObOpenObjectByPointer(process, 0, NULL, PROCESS_ALL_ACCESS, *PsProcessType, KernelMode, &hProc);
+		ULONG64 TraceMessageHookInst = FindPattern((UINT64)ACPIDriverObject->DriverStart, ACPIDriverObject->DriverSize, (BYTE*)"\xB8\x0C\x00\x00\x00\x44\x0F\xB7\xC8\x8D\x50\x00", "xxxxxxxxxxx?");
 
-    HANDLE thread = NULL;
-    PsCreateSystemThread(&thread, THREAD_ALL_ACCESS, NULL, hProc, NULL, (PKSTART_ROUTINE) th_Routine, NULL);
+		if (TraceMessageHookInst)
+		{
+			TraceMessageHookInst += 0xC;
+
+			ULONG64 pfnWppTraceMessagePtr = (ULONG64)ResolveRelativeAddress((PVOID)TraceMessageHookInst, 3, 7);
+
+			if (pfnWppTraceMessagePtr)
+			{
+				*(ULONG64*)(pfnWppTraceMessagePtr) = DispatchHookAddr;
+
+				ACPIDriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = (PDRIVER_DISPATCH)TraceMessageHookInst;
+
+				Printf("ACAPI IRP_MJ_DEVICE_CONTROL Hooked!\n");
+			}
+		}
+	}
 
 	return 0;
 }
+
+
+
+

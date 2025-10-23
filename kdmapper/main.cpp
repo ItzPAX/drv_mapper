@@ -111,10 +111,6 @@ void help() {
 }
 
 int wmain(const int argc, wchar_t** argv) {
-	ULONG64 kernel_image_base = kdmapper::AllocateLegitRwxKernelMem();
-	system("pause");
-	return 1;
-
 	SetUnhandledExceptionFilter(SimplestCrashHandler);
 
 	bool free = paramExists(argc, argv, L"free") > 0;
@@ -224,6 +220,25 @@ int wmain(const int argc, wchar_t** argv) {
 
 	Log(L"[+] success" << std::endl);
 	system("pause");
+
+	HANDLE hDevice = INVALID_HANDLE_VALUE;
+	DWORD DataReturned = 0;
+
+	hDevice = CreateFileW(L"\\\\.\\\ACPI_ROOT_OBJECT", 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+
+	if (hDevice == INVALID_HANDLE_VALUE) {
+		return FALSE;
+	}
+
+	char buffer[0x1024] = { 0 };
+
+	strcpy(buffer, "I am big cheater!\n");
+
+	DeviceIoControl(hDevice, IOCTL_DISK_GET_DRIVE_GEOMETRY, buffer, sizeof(buffer), buffer, sizeof(buffer), &DataReturned, (LPOVERLAPPED)NULL);
+
+	system("pause");
+
+	return 1;
 }
 
 #endif
