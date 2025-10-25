@@ -116,6 +116,7 @@ ULONG64 kdmapper::AllocateLegitRwxKernelMem()
 	std::cout << "RWX Section @ " << rwx_section << std::endl;
 	std::cout << "RWX Page count " << page_count << std::endl;
 
+	// change permission very ghetto style
 	wnbios_lib wnbios;
 	uintptr_t base = wnbios.get_process_base(L"kdmapper_Release.exe");
 	std::cout << "Process base @ " << base << std::endl;
@@ -133,6 +134,22 @@ ULONG64 kdmapper::AllocateLegitRwxKernelMem()
 		wnbios.read_physical_memory((pt + i * sizeof(uintptr_t)), &PTE, sizeof(PTE));
 		PTE.UserSupervisor = 0;
 		wnbios.write_physical_memory((pt + i * sizeof(uintptr_t)), &PTE, sizeof(PTE));
+	}
+
+	if (Table + page_count > 512)
+	{
+		uintptr_t next_pde = rwx_section + (1ULL << 21);
+		pt = wnbios.get_pt(next_pde);
+		std::cout << "RWX PT2 @ " << pt << std::endl;
+
+		for (int i = 0; i < page_count - (512 - Table); i++)
+		{
+			_PTE PTE;
+			PTE.Value = 0;
+			wnbios.read_physical_memory((pt + i * sizeof(uintptr_t)), &PTE, sizeof(PTE));
+			PTE.UserSupervisor = 0;
+			wnbios.write_physical_memory((pt + i * sizeof(uintptr_t)), &PTE, sizeof(PTE));
+		}
 	}
 
 	return rwx_section;
