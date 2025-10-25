@@ -234,7 +234,13 @@ int wmain(const int argc, wchar_t** argv) {
 
 	strcpy(buffer, "I am big cheater!\n");
 
-	DeviceIoControl(hDevice, IOCTL_DISK_GET_DRIVE_GEOMETRY, buffer, sizeof(buffer), buffer, sizeof(buffer), &DataReturned, (LPOVERLAPPED)NULL);
+	while (true)
+	{
+		DeviceIoControl(hDevice, IOCTL_DISK_GET_DRIVE_GEOMETRY, buffer, sizeof(buffer), buffer, sizeof(buffer), &DataReturned, (LPOVERLAPPED)NULL);
+		Sleep(1);
+		if (GetAsyncKeyState(VK_END) & 0x01)
+			break;
+	}
 
 	system("pause");
 

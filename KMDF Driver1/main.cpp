@@ -61,11 +61,15 @@ NTSTATUS DriverEntry(_In_  struct _DRIVER_OBJECT* DriverObject, _In_  PUNICODE_S
 
 		*(ULONG64*)(DispatchHookAddr + 0x6) = (ULONG64)CustomDispatch;
 
-		ULONG64 TraceMessageHookInst = FindPattern((UINT64)ACPIDriverObject->DriverStart, ACPIDriverObject->DriverSize, (BYTE*)"\xB8\x0C\x00\x00\x00\x44\x0F\xB7\xC8\x8D\x50\x00", "xxxxxxxxxxx?");
+		// WIN11 24H2 = \x48\x8B\x05\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x41\xBB xxx????x????xx
+		// WIN11 23H2 = \x48\x8B\x05\x00\x00\x00\x00\xFF\x15\x00\x00\x00\x00\x41\xBB xxx????xx????xx
+		ULONG64 TraceMessageHookInst = FindPattern((UINT64) ACPIDriverObject->DriverStart, ACPIDriverObject->DriverSize, (BYTE*) "\x48\x8B\x05\x00\x00\x00\x00\xFF\x15\x00\x00\x00\x00\x41\xBB", "xxx????xx????xx");//(BYTE*)"\xB8\x0C\x00\x00\x00\x44\x0F\xB7\xC8\x8D\x50\x00", "xxxxxxxxxxx?");
+
+		DbgPrint("%llx\n", TraceMessageHookInst);
 
 		if (TraceMessageHookInst)
 		{
-			TraceMessageHookInst += 0xC;
+			//TraceMessageHookInst += 0xC; // if using new sig + 0
 
 			ULONG64 pfnWppTraceMessagePtr = (ULONG64)ResolveRelativeAddress((PVOID)TraceMessageHookInst, 3, 7);
 
